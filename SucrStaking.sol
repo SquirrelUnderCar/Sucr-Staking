@@ -125,8 +125,4 @@ contract SucrStaking is ReentrancyGuard, Pausable, Ownable {
     function unpause() external onlyOwner {
         _unpause();
     }
-
-    function emergencyWithdraw(address _token, uint256 _amount) external onlyOwner {
-        IERC20(_token).safeTransfer(owner(), _amount);
-    }
 }
