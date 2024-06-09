@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -33,13 +33,14 @@ contract SucrStaking is ReentrancyGuard, Pausable, Ownable {
     event TokensAdded(uint256 amount);
     event EmergencyWithdraw(uint256 amount);
 
-    constructor(address _sucrToken, uint256 _initialInterestRate) Ownable(msg.sender) {
+    constructor(address _sucrToken, uint256 _initialInterestRate, address _owner) Ownable(_owner) {
         require(_sucrToken != address(0), "Invalid token address");
         sucrToken = IERC20(_sucrToken);
         interestRate = _initialInterestRate;
         totalOwnerDeposits = 0;
         totalInterestPaid = 0;
-    }
+    
+}
 
     function stake(uint256 _amount) external nonReentrant whenNotPaused {
         require(_amount > 0, "Cannot stake 0");
