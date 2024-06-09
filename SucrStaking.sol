@@ -23,17 +23,22 @@ contract SucrStaking is ReentrancyGuard, Pausable, Ownable {
 
     mapping(address => Stake) public stakes;
     uint256 public totalStaked;
+    uint256 public totalOwnerDeposits;
+    uint256 public totalInterestPaid;
 
     event Staked(address indexed user, uint256 amount);
     event Unstaked(address indexed user, uint256 amount, uint256 reward);
     event RewardClaimed(address indexed user, uint256 reward);
     event InterestRateChanged(uint256 oldRate, uint256 newRate);
     event TokensAdded(uint256 amount);
+    event EmergencyWithdraw(uint256 amount);
 
     constructor(address _sucrToken, uint256 _initialInterestRate) Ownable(msg.sender) {
         require(_sucrToken != address(0), "Invalid token address");
         sucrToken = IERC20(_sucrToken);
         interestRate = _initialInterestRate;
+        totalOwnerDeposits = 0;
+        totalInterestPaid = 0;
     }
 
     function stake(uint256 _amount) external nonReentrant whenNotPaused {
@@ -82,6 +87,7 @@ contract SucrStaking is ReentrancyGuard, Pausable, Ownable {
             userStake.lastRewardTime = block.timestamp;
             sucrToken.safeTransfer(_user, reward);
             userStake.interestRateAtStake = interestRate; // Update to current rate for future rewards
+            totalInterestPaid += reward;
         }
 
         return reward;
@@ -115,6 +121,7 @@ contract SucrStaking is ReentrancyGuard, Pausable, Ownable {
 
     function addTokens(uint256 _amount) external onlyOwner {
         sucrToken.safeTransferFrom(msg.sender, address(this), _amount);
+        totalOwnerDeposits += _amount;
         emit TokensAdded(_amount);
     }
 
@@ -124,5 +131,13 @@ contract SucrStaking is ReentrancyGuard, Pausable, Ownable {
 
     function unpause() external onlyOwner {
         _unpause();
+    }
+
+    function emergencyWithdraw() external onlyOwner {
+        uint256 withdrawableAmount = totalOwnerDeposits > totalInterestPaid ? totalOwnerDeposits - totalInterestPaid : 0;
+        require(withdrawableAmount > 0, "No tokens available for emergency withdrawal");
+        sucrToken.safeTransfer(owner(), withdrawableAmount);
+        totalOwnerDeposits -= withdrawableAmount;
+        emit EmergencyWithdraw(withdrawableAmount);
     }
 }
